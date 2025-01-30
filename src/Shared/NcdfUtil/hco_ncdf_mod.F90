@@ -664,7 +664,7 @@ CONTAINS
   SUBROUTINE NC_READ_ARR( fID,    ncVar,   lon1,    lon2,  lat1,  &
                           lat2,   lev1,    lev2,    time1, time2, &
                           ncArr,  VarUnit, MissVal, wgt1,  wgt2,  &
-                          ArbIdx, RC                               )
+                          ArbIdx, ArbIdx2, RC                               )
 !
 ! !USES:
 !
@@ -682,6 +682,7 @@ CONTAINS
     REAL*4,           INTENT(IN ), OPTIONAL :: wgt1
     REAL*4,           INTENT(IN ), OPTIONAL :: wgt2
     INTEGER,          INTENT(IN ), OPTIONAL :: ArbIdx      ! Index of arbitrary additional dimension (-1 if none)
+    INTEGER,          INTENT(IN ), OPTIONAL :: ArbIdx2      ! Index of arbitrary additional dimension (-1 if none)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -718,7 +719,7 @@ CONTAINS
     ! Arrays for netCDF start and count values
     INTEGER                :: I, nRead, l1, l2
     INTEGER                :: ndims
-    INTEGER                :: nlon,  nlat, nlev, ntime, arbdim
+    INTEGER                :: nlon,  nlat, nlev, ntime, arbdim, arbdim2
     INTEGER                :: nclev, nctime
     INTEGER                :: s1, s2, s3, s4, s5
     INTEGER                :: n1, n2, n3, n4, n5
@@ -825,6 +826,15 @@ CONTAINS
        ENDIF
     ENDIF
 
+    arbdim2 = -1
+    IF ( PRESENT(ArbIdx2) ) THEN
+       IF ( ArbIdx2 > 0 ) THEN
+          arbdim2 = ArbIdx2
+       ENDIF
+    ENDIF
+
+    print *,'arbdim:',arbdim,'arbdim2:',arbdim2
+
     ! Set dimensions of output array
     ! --> must have at least dimension 1
     nclev  = max(nlev ,1)
@@ -836,7 +846,9 @@ CONTAINS
     if ( nlev   > 0 ) ndims = ndims + 1
     if ( ntime  > 0 ) ndims = ndims + 1
     if ( arbdim > 0 ) ndims = ndims + 1
+    if ( arbdim2 > 0 ) ndims = ndims + 1
 
+    print *,'ndims:',ndims
     !----------------------------------------
     ! Read array
     !----------------------------------------
@@ -933,6 +945,7 @@ CONTAINS
     ! This can be:
     ! - lon,lat,lev,time
     ! - lon,lat,lev,arb
+    ! - lon,lat,arb,arb2
     ! - lon,lat,time,arb
     IF ( ndims == 4 ) THEN
 
@@ -960,14 +973,23 @@ CONTAINS
           ENDIF
 
        ! lev not defined: time + arbitrary dim
-       ELSE
-          n3 = nt
-          tdim = 3
-          s4 = arbdim
+       ELSEIF (  arbdim2 < 0 .and. arbdim > 0  ) THEN
+          n4 = nt
+          tdim = 4
+          s3 = arbdim
+          n3 = 1            
+       print *,'lev not defined: time + arbitrary dim'
+       ! lev not defined: arb dim + arbitrary dim2
+       ELSE  
+          n3 = 1            
+          s3 = arbdim
+          s4 = arbdim2
           n4 = 1
-       ENDIF
-
-       IF ( ApplyWeights ) THEN
+       print *,'lev not defined: arb dim + arbitrary dim2'
+      ENDIF
+      print *,'s1:',s1,'s2:',s2,'s3:',s3,'s4:',s4
+      print *,'n1:',n1,'n2:',n2,'n3:',n3,'n4:',n4
+      IF ( ApplyWeights ) THEN
           ALLOCATE ( WGTARR_4D(n1,n2,n3,n4) )
           WGTARR_4D = 0.0
           IF ( tdim == 3 ) THEN
