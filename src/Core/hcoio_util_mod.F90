@@ -2141,7 +2141,7 @@ CONTAINS
     LOGICAL             :: Found
     CHARACTER(LEN=255)  :: ArbDimVal2
     CHARACTER(LEN=511)  :: MSG
-    CHARACTER(LEN=255)  :: LOC = 'GetArbDimIndex (hcoio_util_mod.F90)'
+    CHARACTER(LEN=255)  :: LOC = 'GetArbDimIndex2 (hcoio_util_mod.F90)'
 
     !=================================================================
     ! GetArbDimIndex
@@ -2219,12 +2219,12 @@ CONTAINS
     ENDIF
 
     ! Verbose
-    IF ( HcoState%amIRoot .AND. HCO_IsVerb( HcoState%Config%Err ) ) THEN
-       WRITE(MSG,*) 'Additional dimension ', TRIM(Lct%Dct%Dta%ArbDimName2), &
-                    ' in ', TRIM(Lct%Dct%Dta%ncFile), ': use index ',      &
-                    ArbIdx2, ' (set: ', Lct%Dct%Dta%ArbDimVal2, ')'
-       CALL HCO_MSG(HcoState%Config%Err,MSG)
-    ENDIF
+    IF ( HcoState%amIRoot .AND. HcoState%Config%doVerbose ) THEN
+      WRITE(MSG,*) 'Additional dimension ', TRIM(Lct%Dct%Dta%ArbDimName), &
+                   ' in ', TRIM(Lct%Dct%Dta%ncFile), ': use index ',      &
+                   ArbIdx2, ' (set: ', Lct%Dct%Dta%ArbDimVal2, ')'
+      CALL HCO_MSG(MSG,LUN=HcoState%Config%hcoLogLUN)
+   ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS
