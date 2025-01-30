@@ -4468,13 +4468,16 @@ CONTAINS
     INTEGER            :: strLen
     INTEGER            :: EmisUnit
     REAL(hp)           :: EmisL
-    CHARACTER(LEN=255) :: str1, str2, tmpstr
+    CHARACTER(LEN=255) :: str1, str2, str3, tmpstr
     CHARACTER(LEN=255) :: MSG
     CHARACTER(LEN=255) :: LOC = 'ExtractSrcDim (hco_config_mod.F90)'
 
     !======================================================================
     ! ExtractSrcDim begins here
     !======================================================================
+
+
+    PRINT *,'IN EXTRACTSRCDIM'
 
     msg = 'Illegal source dimension ' // TRIM(srcDim) // &
           ' for file ' // TRIM(Dta%ncFile) // &
@@ -4494,6 +4497,17 @@ CONTAINS
        str1 = srcDim
        str2 = ''
     ENDIF
+
+    ! See if there is an arbitrary additional dimension. This must be added
+    ! at the end of the string and be separated by a '+' sign
+    idx = INDEX( TRIM(str2), ':' )
+    IF ( idx > 0 ) THEN
+       str3 = str2((idx+1):LEN(str2))
+       str2 = str2(1:(idx-1))
+    ELSE
+       str2 = str2 
+       str3 = ''
+    ENDIF 
 
     ! 2D data:
     IF ( TRIM(str1) == 'xy' .OR. TRIM(str1) == '-' ) THEN
@@ -4608,6 +4622,10 @@ CONTAINS
           RETURN
        ENDIF
 
+      print *,'str1:',str1
+      print *,'str2:',str2
+      print *,'str3:',str3
+
        ! Extract dimension name. Eventually remove '"' character at
        ! beginning
        IF ( str2(1:1) == '"' .OR. &
@@ -4616,6 +4634,8 @@ CONTAINS
        ELSE
           Dta%ArbDimName = str2(1:(idx-1))
        ENDIF
+
+      print *,'Dta%ArbDimName:',Dta%ArbDimName
 
        ! Extract dimension value. Eventually remove trailing '"'
        ! character. The string value itself will be evaluated when
@@ -4628,6 +4648,8 @@ CONTAINS
           Dta%ArbDimVal = str2((idx+1):(strlen))
        ENDIF
 
+      print *,'Dta%ArbDimVal:',Dta%ArbDimVal
+
        ! Verbose
        IF ( HcoConfig%amIRoot .AND. HcoConfig%doVerbose ) THEN
           WRITE(MSG,*) 'Will use additional dimension on file ', &
@@ -4636,6 +4658,54 @@ CONTAINS
           CALL HCO_Msg( msg, LUN=HcoConfig%hcoLogLUN )
        ENDIF
     ENDIF
+
+    IF ( TRIM(str3) /= '' ) THEN
+       MSG = 'Cannot extract arbitrary dimension from ' &
+           // TRIM(srcDim) // ' for file ' // TRIM(Dta%ncFile) &
+           // ' - arbitrary dimensions must follow a `+` sign ' &
+           // 'and contain the name/value pair, e.g. xyz+"ens"=3'
+       idx = INDEX( TRIM(str3), '=' )
+       IF ( idx <= 0 ) THEN
+          CALL HCO_Error( msg, RC, thisLoc=LOC )
+          RETURN
+       ENDIF
+
+       ! Extract dimension name. Eventually remove '"' character at
+       ! beginning
+       IF ( str3(1:1) == '"' .OR. &
+            str3(1:1) == '`'       ) THEN
+          Dta%ArbDimName2 = str3(2:(idx-1))
+       ELSE
+          Dta%ArbDimName2 = str3(1:(idx-1))
+       ENDIF
+
+      print *,'Dta%ArbDimName2:',Dta%ArbDimName2
+
+       ! Extract dimension value. Eventually remove trailing '"'
+       ! character. The string value itself will be evaluated when
+       ! reading the file (in hcoio_dataread_mod.F90).
+       strlen = LEN(TRIM(str3))
+       IF ( str3(strlen:strlen) == '"' .OR. &
+            str3(strlen:strlen) == '`'       ) THEN
+          Dta%ArbDimVal2 = str3((idx+1):(strlen-1))
+       ELSE
+          Dta%ArbDimVal2 = str3((idx+1):(strlen))
+       ENDIF
+
+      print *,'Dta%ArbDimVal2:',Dta%ArbDimVal2
+
+       ! Verbose
+       IF ( HcoConfig%amIRoot .AND. HcoConfig%doVerbose ) THEN
+          WRITE(MSG,*) 'Will use additional dimension on file ', &
+             TRIM(Dta%ncFile), ': ', TRIM(Dta%ArbDimName2), ' = ', &
+             TRIM(Dta%ArbDimVal2)
+          CALL HCO_Msg( msg, LUN=HcoConfig%hcoLogLUN )
+       ENDIF
+    ENDIF
+
+
+    !PRINT *,'HERE WE ARE'
+    !STOP
 
     ! Leave w/ success
     RC = HCO_SUCCESS

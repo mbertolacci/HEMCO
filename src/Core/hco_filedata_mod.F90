@@ -200,6 +200,8 @@ CONTAINS
     FileDta%OrigUnit     = ''
     FileDta%ArbDimName   = 'none'
     FileDta%ArbDimVal    = ''
+    FileDta%ArbDimName2   = 'none'
+    FileDta%ArbDimVal2    = ''
     FileDta%IsLocTime    = .FALSE.
     FileDta%IsConc       = .FALSE.
     FileDta%DoShare      = .FALSE.
