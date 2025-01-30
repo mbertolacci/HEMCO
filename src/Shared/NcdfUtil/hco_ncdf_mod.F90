@@ -833,8 +833,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-    print *,'arbdim:',arbdim,'arbdim2:',arbdim2
-
     ! Set dimensions of output array
     ! --> must have at least dimension 1
     nclev  = max(nlev ,1)
@@ -848,7 +846,6 @@ CONTAINS
     if ( arbdim > 0 ) ndims = ndims + 1
     if ( arbdim2 > 0 ) ndims = ndims + 1
 
-    print *,'ndims:',ndims
     !----------------------------------------
     ! Read array
     !----------------------------------------
@@ -978,17 +975,15 @@ CONTAINS
           tdim = 4
           s3 = arbdim
           n3 = 1            
-       print *,'lev not defined: time + arbitrary dim'
+
        ! lev not defined: arb dim + arbitrary dim2
        ELSE  
           n3 = 1            
           s3 = arbdim
           s4 = arbdim2
           n4 = 1
-       print *,'lev not defined: arb dim + arbitrary dim2'
       ENDIF
-      print *,'s1:',s1,'s2:',s2,'s3:',s3,'s4:',s4
-      print *,'n1:',n1,'n2:',n2,'n3:',n3,'n4:',n4
+
       IF ( ApplyWeights ) THEN
           ALLOCATE ( WGTARR_4D(n1,n2,n3,n4) )
           WGTARR_4D = 0.0
