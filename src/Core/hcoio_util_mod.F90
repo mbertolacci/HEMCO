@@ -40,6 +40,7 @@ MODULE HCOIO_Util_Mod
   PUBLIC :: SigmaMidToEdges
   PUBLIC :: CheckMissVal
   PUBLIC :: GetArbDimIndex
+  PUBLIC :: GetArbDimIndex2
 #endif
   PUBLIC :: HCOIO_ReadOther
   PUBLIC :: HCOIO_ReadCountryValues
@@ -2095,6 +2096,140 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE GetArbDimIndex
+!EOC
+!------------------------------------------------------------------------------
+!                   Harmonized Emissions Component (HEMCO)                    !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GetArbDimIndex2
+!
+! !DESCRIPTION: Subroutine GetArbDimIndex returns the index of the arbitrary
+! file dimension. -1 if no such dimension is defined.
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GetArbDimIndex2( HcoState, Lun, Lct, ArbIdx2, RC )
+!
+! !USES:
+!
+    USE HCO_m_netcdf_io_checks
+    USE HCO_m_netcdf_io_get_dimlen
+    USE HCO_ExtList_Mod,    ONLY : GetExtOpt
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(HCO_State),  POINTER                 :: HcoState
+    INTEGER,          INTENT(IN   )           :: Lun
+    TYPE(ListCont),   POINTER                 :: Lct
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(  OUT)           :: ArbIdx2
+    INTEGER,          INTENT(  OUT)           :: RC
+!
+! !REVISION HISTORY:
+!  22 Sep 2015 - C. Keller - Initial version
+!  See https://github.com/geoschem/hemco for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER             :: TargetVal, nVal
+    LOGICAL             :: Found
+    CHARACTER(LEN=255)  :: ArbDimVal2
+    CHARACTER(LEN=511)  :: MSG
+    CHARACTER(LEN=255)  :: LOC = 'GetArbDimIndex2 (hcoio_util_mod.F90)'
+
+    !=================================================================
+    ! GetArbDimIndex
+    !=================================================================
+
+    ! Assume success until otherwise
+    RC = HCO_SUCCESS
+
+    ! Init
+    ArbIdx2 = -1
+    IF ( TRIM(Lct%Dct%Dta%ArbDimName2) == 'none' ) RETURN
+
+    ! Check if variable exists
+    Found = Ncdoes_Dim_Exist ( Lun, TRIM(Lct%Dct%Dta%ArbDimName2) )
+    IF ( .NOT. Found ) THEN
+       MSG = 'Cannot read dimension ' // TRIM(Lct%Dct%Dta%ArbDimName2) &
+             // ' from file ' // &
+             TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    ! Get dimension length
+    CALL Ncget_Dimlen ( Lun, TRIM(Lct%Dct%Dta%ArbDimName2), nVal )
+
+    ! Get value to look for. This is archived in variable ArbDimVal2.
+    ! Eventually need to extract value from HEMCO settings
+    ArbDimVal2 = TRIM(Lct%Dct%Dta%ArbDimVal2)
+
+    ! If string starts with a number, evaluate value directly
+    IF ( ArbDimVal2(1:1) == '0' .OR. &
+         ArbDimVal2(1:1) == '1' .OR. &
+         ArbDimVal2(1:1) == '2' .OR. &
+         ArbDimVal2(1:1) == '3' .OR. &
+         ArbDimVal2(1:1) == '4' .OR. &
+         ArbDimVal2(1:1) == '5' .OR. &
+         ArbDimVal2(1:1) == '6' .OR. &
+         ArbDimVal2(1:1) == '7' .OR. &
+         ArbDimVal2(1:1) == '8' .OR. &
+         ArbDimVal2(1:1) == '9'       ) THEN
+       READ(ArbDimVal2,*) TargetVal
+
+    ! Otherwise, assume this is a HEMCO option (including a token)
+    ELSE
+       IF ( ArbDimVal2(1:1) == '$' ) ArbDimVal2 = ArbDimVal2(2:LEN(ArbDimVal2))
+       CALL GetExtOpt ( HcoState%Config, ExtNr=-999, &
+                        OptName=TRIM(ArbDimVal2), &
+                        OptValInt=TargetVal, FOUND=Found, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+           CALL HCO_ERROR( 'ERROR 8', RC, THISLOC=LOC )
+           RETURN
+       ENDIF
+       IF ( .NOT. Found ) THEN
+          WRITE(MSG,*) 'Cannot evaluate additional dimension value ', &
+             TRIM(ArbDimVal2), '. This does not seem to be a number nor ', &
+             'a HEMCO token/setting. This error happened when evaluating ', &
+             'dimension ', TRIM(Lct%Dct%Dta%ArbDimName2), ' belonging to ', &
+             'file ', TRIM(Lct%Dct%Dta%ncFile)
+          CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+          RETURN
+       ENDIF
+    ENDIF
+
+    IF ( TargetVal > nVal ) THEN
+       WRITE(MSG,*) 'Desired dimension value ', TargetVal, &
+          ' exceeds corresponding dimension length on that file: ', nVal, &
+          'This error happened when evaluating ', &
+          'dimension ', TRIM(Lct%Dct%Dta%ArbDimName2), ' belonging to ', &
+          'file ', TRIM(Lct%Dct%Dta%ncFile)
+       CALL HCO_ERROR( MSG, RC, THISLOC=LOC )
+       RETURN
+
+    ELSE
+       ArbIdx2 = TargetVal
+    ENDIF
+
+    ! Verbose
+    IF ( HcoState%amIRoot .AND. HcoState%Config%doVerbose ) THEN
+      WRITE(MSG,*) 'Additional dimension ', TRIM(Lct%Dct%Dta%ArbDimName), &
+                   ' in ', TRIM(Lct%Dct%Dta%ncFile), ': use index ',      &
+                   ArbIdx2, ' (set: ', Lct%Dct%Dta%ArbDimVal2, ')'
+      CALL HCO_MSG(MSG,LUN=HcoState%Config%hcoLogLUN)
+   ENDIF
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE GetArbDimIndex2
 !EOC
 #endif
 !------------------------------------------------------------------------------

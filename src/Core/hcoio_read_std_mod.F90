@@ -176,6 +176,7 @@ CONTAINS
     INTEGER                       :: tidx1b, tidx2b, ncYr2, ncMt2
     INTEGER                       :: HcoID
     INTEGER                       :: ArbIdx
+    INTEGER                       :: ArbIdx2
     INTEGER                       :: nlatEdge, nlonEdge
     INTEGER                       :: Direction
     REAL(hp)                      :: MW_g
@@ -792,6 +793,12 @@ CONTAINS
         RETURN
     ENDIF
 
+    CALL GetArbDimIndex2( HcoState, ncLun, Lct, ArbIdx2, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+        CALL HCO_ERROR( 'ERROR 4', RC, THISLOC=LOC )
+        RETURN
+    ENDIF
+
     ! ----------------------------------------------------------------
     ! Read data
     ! ----------------------------------------------------------------
@@ -818,6 +825,7 @@ CONTAINS
                       wgt2    = wgt2,               &
                       MissVal = HCO_MISSVAL,        &
                       ArbIdx  = ArbIdx,             &
+                      ArbIdx2 = ArbIdx2,            &
                       RC      = NCRC                 )
 
     IF ( NCRC /= 0 ) THEN
@@ -903,6 +911,7 @@ CONTAINS
                             wgt2    = wgt2,               &
                             MissVal = HCO_MISSVAL,        &
                             ArbIdx  = ArbIdx,             &
+                            ArbIdx2 = ArbIdx2,            &
                             RC      = NCRC                 )
           IF ( NCRC /= 0 ) THEN
              CALL HCO_ERROR( 'NC_READ_ARRAY (2)', RC )
@@ -1052,6 +1061,7 @@ CONTAINS
                                wgt2    = wgt2,               &
                                MissVal = HCO_MISSVAL,        &
                                ArbIdx  = ArbIdx,             &
+                               ArbIdx2 = ArbIdx2,            &
                                RC      = NCRC                 )
              IF ( NCRC /= 0 ) THEN
                 CALL HCO_ERROR( 'NC_READ_ARRAY (3)', RC )

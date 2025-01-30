@@ -356,6 +356,8 @@ MODULE HCO_TYPES_MOD
      CHARACTER(LEN= 31)          :: OrigUnit  ! original data units
      CHARACTER(LEN= 63)          :: ArbDimName! name of additional dimension
      CHARACTER(LEN= 63)          :: ArbDimVal ! desired value of additional dimension
+     CHARACTER(LEN= 63)          :: ArbDimName2! name of additional dimension
+     CHARACTER(LEN= 63)          :: ArbDimVal2 ! desired value of additional dimension
      INTEGER                     :: Cover     ! data coverage
      INTEGER                     :: SpaceDim  ! space dimension: 1, 2 or 3
      INTEGER                     :: Levels    ! vertical level handling
